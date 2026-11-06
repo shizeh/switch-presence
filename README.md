@@ -49,44 +49,6 @@ Right-click a game to add it to favorites, change its cover, or remove it.
 
 Want a game added for everyone, with its official cover? Use **Help > Request a game** in the app to open an issue.
 
-## Using your own Discord application (optional)
-
-By default the app uses the project's Discord application, with all the built-in covers. If you want your own:
-
-1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create an application.
-2. Copy its **Application ID** (General Information tab).
-3. Paste it in **Options > Settings** in the app.
-4. In **Rich Presence > Art Assets**, upload two square badge images (512×512) named `badge_switch1` and `badge_switch2` (the small icon shown in the corner of the cover), plus `default_cover` (shown for games without a cover) and one image per game. The image name (without extension) is the cover key, for example `mario_kart_world`.
-
-## Build it yourself
-
-You need [Python 3.10+](https://www.python.org/downloads/) (tick "Add Python to PATH" when installing).
-
-```
-python -m pip install -r requirements.txt
-python switch_presence.py
-```
-
-To create the `.exe`, double-click **`build.bat`**. The file appears in the `dist` folder.
-
-## For the maintainer: publishing a release
-
-1. Create the Discord application and upload the images (see above).
-2. Paste its Application ID in `DEFAULT_CLIENT_ID` at the top of `switch_presence.py` (it is a public ID, not a secret).
-3. Push a tag to build and publish the `.exe` automatically with GitHub Actions:
-   ```
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-4. **Adding games needs no new `.exe`.** The app downloads [`games.json`](games.json) from this repository at every launch (and keeps a copy for offline use). To add a game:
-   1. Upload its cover in Discord Developer Portal > Rich Presence > Art Assets (`prepare_covers.py` prepares many covers at once).
-   2. Add a line to `games.json` on GitHub (use the pencil icon, then *Commit changes*):
-      ```json
-      { "name": "Super Mario Odyssey", "cover": "super_mario_odyssey" }
-      ```
-   Everyone gets the new game the next time they open the app (or via **Options > Refresh game list**).
-5. When you publish a new `.exe`, raise `latest_version` in `games.json`: users with an older version will see a "new version available" link in the app.
-
 ## Contact
 
 Bug, idea or game request? Open an [issue](../../issues/new) or message me on Discord: **Shizeh**. The app has **Help > Contact the creator** too.
