@@ -1,0 +1,233 @@
+{
+  "latest_version": "1.0.0",
+  "games": [
+    {
+      "name": "The Legend of Zelda: Ocarina of Time",
+      "cover": "zelda_ocarina_of_time"
+    },
+    {
+      "name": "Nintendo Switch Sports Resort",
+      "cover": "switch_sports_resort"
+    },
+    {
+      "name": "Splatoon Raiders",
+      "cover": "splatoon_raiders"
+    },
+    {
+      "name": "Mario Kart World",
+      "cover": "mario_kart_world"
+    },
+    {
+      "name": "Mario Kart 8 Deluxe",
+      "cover": "mario_kart_8_deluxe"
+    },
+    {
+      "name": "FINAL FANTASY RESONANCE",
+      "cover": "final_fantasy_resonance"
+    },
+    {
+      "name": "Donkey Kong Bananza",
+      "cover": "donkey_kong_bananza"
+    },
+    {
+      "name": "Tomodachi Life: Living the Dream",
+      "cover": "tomodachi_life"
+    },
+    {
+      "name": "Splatoon 3",
+      "cover": "splatoon_3"
+    },
+    {
+      "name": "Pokémon Pokopia",
+      "cover": "pokemon_pokopia"
+    },
+    {
+      "name": "Kirby Air Riders",
+      "cover": "kirby_air_riders"
+    },
+    {
+      "name": "The Legend of Zelda: Breath of the Wild",
+      "cover": "zelda_breath_of_the_wild"
+    },
+    {
+      "name": "The Legend of Zelda: Tears of the Kingdom",
+      "cover": "zelda_tears_of_the_kingdom"
+    },
+    {
+      "name": "The Legend of Zelda: Echoes of Wisdom",
+      "cover": "zelda_echoes_of_wisdom"
+    },
+    {
+      "name": "The Legend of Zelda: Link's Awakening",
+      "cover": "zelda_links_awakening"
+    },
+    {
+      "name": "Hyrule Warriors: Age of Calamity",
+      "cover": "hyrule_warriors_calamity"
+    },
+    {
+      "name": "The Legend of Zelda: Skyward Sword HD",
+      "cover": "zelda_skyward_sword_hd"
+    },
+    {
+      "name": "Super Smash Bros. Ultimate",
+      "cover": "super_smash_bros_ultimate"
+    },
+    {
+      "name": "Animal Crossing: New Horizons",
+      "cover": "animal_crossing_new_horizons"
+    },
+    {
+      "name": "Kirby and the Forgotten Land",
+      "cover": "kirby_forgotten_land"
+    },
+    {
+      "name": "Kirby's Return to Dream Land Deluxe",
+      "cover": "kirby_return_to_dream_land"
+    },
+    {
+      "name": "Pikmin 4",
+      "cover": "pikmin_4"
+    },
+    {
+      "name": "Kirby Star Allies",
+      "cover": "kirby_star_allies"
+    },
+    {
+      "name": "Splatoon 2",
+      "cover": "splatoon_2"
+    },
+    {
+      "name": "Pokémon Violet",
+      "cover": "pokemon_violet"
+    },
+    {
+      "name": "Pikmin 3 Deluxe",
+      "cover": "pikmin_3_deluxe"
+    },
+    {
+      "name": "Pokémon Sword",
+      "cover": "pokemon_sword"
+    },
+    {
+      "name": "Pokémon Shield",
+      "cover": "pokemon_shield"
+    },
+    {
+      "name": "Pokémon Scarlet",
+      "cover": "pokemon_scarlet"
+    },
+    {
+      "name": "Pokémon Legends: Z-A",
+      "cover": "pokemon_legends_za"
+    },
+    {
+      "name": "Mario Tennis Aces",
+      "cover": "mario_tennis_aces"
+    },
+    {
+      "name": "Mario Tennis Fever",
+      "cover": "mario_tennis_fever"
+    },
+    {
+      "name": "Super Mario Bros. Wonder",
+      "cover": "super_mario_bros_wonder"
+    },
+    {
+      "name": "New Super Mario Bros. U Deluxe",
+      "cover": "new_super_mario_bros_u_deluxe"
+    },
+    {
+      "name": "Luigi's Mansion 2 HD",
+      "cover": "luigis_mansion_2_hd"
+    },
+    {
+      "name": "Luigi's Mansion 3",
+      "cover": "luigis_mansion_3"
+    },
+    {
+      "name": "Pokémon Legends: Arceus",
+      "cover": "pokemon_legends_arceus"
+    },
+    {
+      "name": "Fire Emblem: Fortune's Weave",
+      "cover": "fire_emblem_fortunes_weave"
+    },
+    {
+      "name": "Yoshi's Crafted World",
+      "cover": "yoshis_crafted_world"
+    },
+    {
+      "name": "Yoshi and the Mysterious Book",
+      "cover": "yoshi_mysterious_book"
+    },
+    {
+      "name": "Hyrule Warriors: Age of Imprisonment",
+      "cover": "hyrule_warriors_imprisonment"
+    },
+    {
+      "name": "Star Fox",
+      "cover": "star_fox"
+    },
+    {
+      "name": "Metroid Prime 4: Beyond",
+      "cover": "metroid_prime_4_beyond"
+    },
+    {
+      "name": "Super Mario Odyssey",
+      "cover": "super_mario_odyssey"
+    },
+    {
+      "name": "Super Mario 3D World + Bowser's Fury",
+      "cover": "super_mario_3d_world_fury"
+    },
+    {
+      "name": "Super Mario Party",
+      "cover": "super_mario_party"
+    },
+    {
+      "name": "Mario Party Superstars",
+      "cover": "mario_party_superstars"
+    },
+    {
+      "name": "Super Mario Maker 2",
+      "cover": "super_mario_maker_2"
+    },
+    {
+      "name": "Mario Strikers: Battle League Football",
+      "cover": "mario_strikers_battle_league"
+    },
+    {
+      "name": "Paper Mario: The Origami King",
+      "cover": "paper_mario_origami_king"
+    },
+    {
+      "name": "Paper Mario: The Thousand-Year Door",
+      "cover": "paper_mario_thousand_year_door"
+    },
+    {
+      "name": "Nintendo Switch Sports",
+      "cover": "nintendo_switch_sports"
+    },
+    {
+      "name": "Pokémon Brilliant Diamond",
+      "cover": "pokemon_brilliant_diamond"
+    },
+    {
+      "name": "Pokémon Shining Pearl",
+      "cover": "pokemon_shining_pearl"
+    },
+    {
+      "name": "Pokémon: Let's Go, Eevee!",
+      "cover": "pokemon_lets_go_eevee"
+    },
+    {
+      "name": "Pokémon: Let's Go, Pikachu!",
+      "cover": "pokemon_lets_go_pikachu"
+    },
+    {
+      "name": "Metroid Dread",
+      "cover": "metroid_dread"
+    }
+  ]
+}

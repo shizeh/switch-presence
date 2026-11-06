@@ -15,6 +15,8 @@ Nintendo consoles have no native Discord integration, so Switch Presence is **ma
 - Choose your console: Nintendo Switch or Nintendo Switch 2
 - Game list with search, favorites (★) and your own custom games
 - Big cover art, console badge, session timer
+- **Customize your presence** with simple switches and a live preview (timer, console name, badge, "Get this status" button)
+- Built-in **Help Center** with step-by-step guides, and a quick way to contact the author
 - Optional custom message (e.g. "Level 12")
 - Dark and light themes
 - Export / import your game list
@@ -40,12 +42,11 @@ You may see a blue "Windows protected your PC" screen. The app is not digitally 
 
 ## Adding your own game
 
-Click **+ Add a game** in the app, then enter:
-
-- the game name
-- a cover: a direct image link (`https://…`) works with no setup. Leave it empty to use the built-in key.
+Click **+ Add a game** in the app and enter the game name. For the cover, paste a direct link to an image (ending in `.png` or `.jpg`, e.g. from Wikimedia or SteamGridDB: right-click an image > *Copy image address*); this works without any upload. If you leave it empty, a default image is shown. The game name always displays correctly.
 
 Right-click a game to add it to favorites, change its cover, or remove it.
+
+Want a game added for everyone, with its official cover? Use **Help > Request a game** in the app to open an issue.
 
 ## Using your own Discord application (optional)
 
@@ -54,7 +55,7 @@ By default the app uses the project's Discord application, with all the built-in
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create an application.
 2. Copy its **Application ID** (General Information tab).
 3. Paste it in **Options > Settings** in the app.
-4. In **Rich Presence > Art Assets**, upload `assets/switch1.png`, `assets/switch2.png` and one image per game. The image name (without extension) is the cover key, for example `mario_kart_world`.
+4. In **Rich Presence > Art Assets**, upload two square badge images (512×512) named `badge_switch1` and `badge_switch2` (the small icon shown in the corner of the cover), plus `default_cover` (shown for games without a cover) and one image per game. The image name (without extension) is the cover key, for example `mario_kart_world`.
 
 ## Build it yourself
 
@@ -76,7 +77,18 @@ To create the `.exe`, double-click **`build.bat`**. The file appears in the `dis
    git tag v1.0.0
    git push origin v1.0.0
    ```
-4. To add a built-in game: upload its cover, add a line in `BUILTIN_GAMES`, then publish a new version. `prepare_covers.py` can prepare many covers at once.
+4. **Adding games needs no new `.exe`.** The app downloads [`games.json`](games.json) from this repository at every launch (and keeps a copy for offline use). To add a game:
+   1. Upload its cover in Discord Developer Portal > Rich Presence > Art Assets (`prepare_covers.py` prepares many covers at once).
+   2. Add a line to `games.json` on GitHub (use the pencil icon, then *Commit changes*):
+      ```json
+      { "name": "Super Mario Odyssey", "cover": "super_mario_odyssey" }
+      ```
+   Everyone gets the new game the next time they open the app (or via **Options > Refresh game list**).
+5. When you publish a new `.exe`, raise `latest_version` in `games.json`: users with an older version will see a "new version available" link in the app.
+
+## Contact
+
+Bug, idea or game request? Open an [issue](../../issues/new) or message me on Discord: **Shizeh**. The app has **Help > Contact the creator** too.
 
 ## Cover art
 
