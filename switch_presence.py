@@ -124,6 +124,7 @@ def load_config():
         "client_id": "",        # remplace DEFAULT_CLIENT_ID si renseigné
         "console": "switch2",
         "theme": "dark",
+        "language": "",         # vide = langue du système
         "show_timer": True,
         "show_console": True,   # nom de la console sous le jeu
         "show_badge": True,     # petit badge de la console sur la jaquette
@@ -199,6 +200,71 @@ def fmt_duration(seconds):
     h, rem = divmod(seconds, 3600)
     m, s = divmod(rem, 60)
     return f"{h:d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+
+
+# ----------------------------------------------------------------------------
+# Traductions : un fichier .json par langue dans le dossier locales/
+# Pour ajouter une langue, copie locales/en.json en locales/xx.json, traduis les textes
+# et change la ligne "_name" : la langue apparaît automatiquement dans les paramètres.
+# ----------------------------------------------------------------------------
+# Langue au premier lancement : "en" pour tout le monde. Mets AUTO_DETECT_LANGUAGE = True pour
+# prendre la langue de Windows à la place (français, espagnol ou anglais).
+DEFAULT_LANGUAGE = "en"
+AUTO_DETECT_LANGUAGE = False
+_STRINGS, _FALLBACK = {}, {}
+
+
+def _read_locale(code):
+    try:
+        with open(resource_path(os.path.join("locales", code + ".json")), encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def available_languages():
+    """{code: nom affiché} pour chaque fichier locales/xx.json."""
+    langs = {}
+    try:
+        for fn in sorted(os.listdir(resource_path("locales"))):
+            if fn.endswith(".json"):
+                langs[fn[:-5]] = str(_read_locale(fn[:-5]).get("_name", fn[:-5]))
+    except Exception:
+        pass
+    return langs or {"en": "English"}
+
+
+def detect_language():
+    """Langue du système si on la propose, sinon l'anglais."""
+    code = ""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            primary = ctypes.windll.kernel32.GetUserDefaultUILanguage() & 0xFF
+            code = {0x0C: "fr", 0x0A: "es", 0x09: "en"}.get(primary, "")
+        else:
+            code = (os.environ.get("LC_ALL") or os.environ.get("LANG") or "")[:2].lower()
+    except Exception:
+        pass
+    return code if code in available_languages() else "en"
+
+
+def load_language(code):
+    global _STRINGS, _FALLBACK
+    _FALLBACK = _read_locale("en")
+    _STRINGS = _FALLBACK if code == "en" else _read_locale(code)
+
+
+def tr(key, **kw):
+    """Texte traduit (anglais si la clé manque dans la langue choisie)."""
+    text = _STRINGS.get(key) or _FALLBACK.get(key) or key
+    if not kw:
+        return text
+    try:
+        return text.format(**kw)
+    except (KeyError, IndexError, ValueError):
+        return text
 
 
 # ----------------------------------------------------------------------------
@@ -314,12 +380,12 @@ class GameDialog(BaseDialog):
         super().__init__(app, title, "460x330")
         self.result = None
         b = self.body
-        ttk.Label(b, text="Nom du jeu", style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(b, text=tr("game_name"), style="Muted.TLabel").pack(anchor="w")
         self.name_var = tk.StringVar(value=name)
         e = ttk.Entry(b, textvariable=self.name_var, state="normal" if name_editable else "disabled")
         e.pack(fill="x", pady=(2, 12))
 
-        ttk.Label(b, text="Cover (lien https:// vers une image, facultatif)", style="Muted.TLabel").pack(anchor="w")
+        ttk.Label(b, text=tr("game_cover"), style="Muted.TLabel").pack(anchor="w")
         self.cover_var = tk.StringVar(value=cover)
         ttk.Entry(b, textvariable=self.cover_var).pack(fill="x", pady=(2, 4))
         self.hint = ttk.Label(b, text="", style="Muted.TLabel", wraplength=410, justify="left")
@@ -329,22 +395,19 @@ class GameDialog(BaseDialog):
 
         row = ttk.Frame(b)
         row.pack(side="bottom", fill="x")
-        ttk.Button(row, text="Annuler", style="Secondary.TButton", command=self.destroy).pack(side="right")
-        ttk.Button(row, text="Enregistrer", style="Accent.TButton", command=self._ok).pack(side="right", padx=8)
+        ttk.Button(row, text=tr("cancel"), style="Secondary.TButton", command=self.destroy).pack(side="right")
+        ttk.Button(row, text=tr("save"), style="Accent.TButton", command=self._ok).pack(side="right", padx=8)
         if name_editable:
             e.focus_set()
         self.bind("<Return>", lambda _e: self._ok())
 
     def _update_hint(self):
-        self.hint.config(
-            text="Laisse vide pour afficher l'image par défaut. Pour une jaquette, colle un lien https "
-                 "direct vers une image (finissant par .png ou .jpg)."
-        )
+        self.hint.config(text=tr("game_cover_hint"))
 
     def _ok(self):
         name = self.name_var.get().strip()
         if not name:
-            messagebox.showwarning(APP_NAME, "Donne un nom au jeu.", parent=self)
+            messagebox.showwarning(APP_NAME, tr("err_need_name"), parent=self)
             return
         self.result = (name, self.cover_var.get().strip())
         self.destroy()
@@ -443,20 +506,20 @@ class PresencePreview(tk.Frame):
 
 class SettingsDialog(BaseDialog):
     def __init__(self, app, tab="presence"):
-        super().__init__(app, "Paramètres", "620x560")
+        super().__init__(app, tr("settings_title"), "620x560")
         cfg, t = app.cfg, app.theme
         b = self.body
         self.theme_var = tk.StringVar(value=cfg["theme"])
         self.vars = {k: tk.BooleanVar(value=cfg[k]) for k in ("show_timer", "show_console", "show_badge", "show_button")}
 
-        self.tab_seg = Segmented(b, [("presence", "Ma présence Discord"), ("general", "Général")], tab, self._switch_tab)
+        self.tab_seg = Segmented(b, [("presence", tr("tab_presence")), ("general", tr("tab_general"))], tab, self._switch_tab)
         self.tab_seg.recolor(t)
         self.tab_seg.pack(fill="x", pady=(0, 14))
 
         row = ttk.Frame(b)
         row.pack(side="bottom", fill="x", pady=(10, 0))
-        ttk.Button(row, text="Annuler", style="Secondary.TButton", command=self.destroy).pack(side="right")
-        ttk.Button(row, text="Enregistrer", style="Accent.TButton", command=self._save).pack(side="right", padx=8)
+        ttk.Button(row, text=tr("cancel"), style="Secondary.TButton", command=self.destroy).pack(side="right")
+        ttk.Button(row, text=tr("save"), style="Accent.TButton", command=self._save).pack(side="right", padx=8)
 
         self.pages = {"presence": ttk.Frame(b), "general": ttk.Frame(b)}
         self._build_presence(self.pages["presence"], t)
@@ -476,43 +539,45 @@ class SettingsDialog(BaseDialog):
         self.pages[key].pack(fill="both", expand=True)
 
     def _build_presence(self, page, t):
-        ttk.Label(page, text="APERÇU : ce que tes amis voient sur ton profil", style="Section.TLabel").pack(anchor="w", pady=(0, 4))
+        ttk.Label(page, text=tr("preview_label"), style="Section.TLabel").pack(anchor="w", pady=(0, 4))
         self.preview = PresencePreview(page)
         self.preview.pack(fill="x", pady=(0, 14))
-        ttk.Label(page, text="RÉGLAGES : clique sur un interrupteur", style="Section.TLabel").pack(anchor="w", pady=(0, 2))
+        ttk.Label(page, text=tr("settings_label"), style="Section.TLabel").pack(anchor="w", pady=(0, 2))
         options = [
-            ("show_timer", "Temps de jeu", "Un chrono qui montre depuis combien de temps tu joues."),
-            ("show_console", "Nom de la console", "Écrit « Nintendo Switch » ou « Switch 2 » sous le nom du jeu."),
-            ("show_badge", "Badge de la console", "Le petit logo dans le coin de la jaquette."),
-            ("show_button", f"Bouton « {BUTTON_LABEL} »",
-             "Un bouton cliquable sous ton activité (tu ne le vois pas toi-même)."),
+            ("show_timer", tr("opt_timer_title"), tr("opt_timer_desc")),
+            ("show_console", tr("opt_console_title"), tr("opt_console_desc")),
+            ("show_badge", tr("opt_badge_title"), tr("opt_badge_desc")),
+            ("show_button", tr("opt_button_title", button=BUTTON_LABEL), tr("opt_button_desc")),
         ]
         for key, title, desc in options:
             ToggleRow(page, t, title, desc, self.vars[key], self._refresh_preview).pack(fill="x", pady=2)
 
     def _build_general(self, page, t):
-        ttk.Label(page, text="THÈME", style="Section.TLabel").pack(anchor="w")
-        seg = Segmented(page, [("dark", "Sombre"), ("light", "Clair")], self.theme_var.get(),
+        ttk.Label(page, text=tr("language_label"), style="Section.TLabel").pack(anchor="w")
+        self.lang_var = tk.StringVar(value=self.app.cfg["language"])
+        lseg = Segmented(page, list(available_languages().items()), self.lang_var.get(),
+                         lambda k: self.lang_var.set(k))
+        lseg.recolor(t)
+        lseg.pack(fill="x", pady=(4, 4))
+        ttk.Label(page, text=tr("language_desc"), style="Muted.TLabel").pack(anchor="w", pady=(0, 16))
+
+        ttk.Label(page, text=tr("theme_label"), style="Section.TLabel").pack(anchor="w")
+        seg = Segmented(page, [("dark", tr("theme_dark")), ("light", tr("theme_light"))], self.theme_var.get(),
                         lambda k: self.theme_var.set(k))
         seg.recolor(t)
         seg.pack(fill="x", pady=(4, 4))
-        ttk.Label(page, text="Change l'apparence de l'application.", style="Muted.TLabel").pack(anchor="w", pady=(0, 18))
+        ttk.Label(page, text=tr("theme_desc"), style="Muted.TLabel").pack(anchor="w", pady=(0, 16))
 
-        ttk.Label(page, text="APPLICATION ID DISCORD (AVANCÉ)", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(page, text=tr("cid_label"), style="Section.TLabel").pack(anchor="w")
         self.cid_var = tk.StringVar(value=self.app.cfg["client_id"])
         ttk.Entry(page, textvariable=self.cid_var).pack(fill="x", pady=(4, 4))
-        info = (
-            "Tu n'as rien à remplir : l'application utilise déjà l'ID prévu pour elle. "
-            "Ce champ sert uniquement si tu veux utiliser ta propre application Discord."
-            if DEFAULT_CLIENT_ID else
-            "Obligatoire : crée une application sur discord.com/developers/applications "
-            "et colle ici son « Application ID »."
-        )
-        ttk.Label(page, text=info, style="Muted.TLabel", wraplength=500, justify="left").pack(anchor="w", pady=(0, 10))
-        ttk.Button(page, text="Ouvrir le Developer Portal", style="Secondary.TButton",
+        info = tr("cid_info_default") if DEFAULT_CLIENT_ID else tr("cid_info_required")
+        ttk.Label(page, text=info, style="Muted.TLabel", wraplength=int(540 * ui_scale(page)),
+                  justify="left").pack(anchor="w", pady=(0, 10))
+        ttk.Button(page, text=tr("open_portal"), style="Secondary.TButton",
                    command=lambda: webbrowser.open("https://discord.com/developers/applications")).pack(anchor="w")
-        ttk.Button(page, text="Besoin d'aide ?", style="Secondary.TButton",
-                   command=lambda: self.app.open_help(0)).pack(anchor="w", pady=(18, 0))
+        ttk.Button(page, text=tr("need_help"), style="Secondary.TButton",
+                   command=lambda: self.app.open_help(0)).pack(anchor="w", pady=(16, 0))
 
     def _refresh_preview(self):
         a = self.app
@@ -527,7 +592,7 @@ class SettingsDialog(BaseDialog):
     def _save(self):
         cid = self.cid_var.get().strip()
         if cid and not cid.isdigit():
-            messagebox.showerror(APP_NAME, "L'Application ID ne contient que des chiffres.", parent=self)
+            messagebox.showerror(APP_NAME, tr("err_cid_digits"), parent=self)
             return
         cfg = self.app.cfg
         cfg["client_id"] = cid
@@ -535,86 +600,35 @@ class SettingsDialog(BaseDialog):
             cfg[k] = var.get()
         theme_changed = self.theme_var.get() != cfg["theme"]
         cfg["theme"] = self.theme_var.get()
+        lang = self.lang_var.get()
+        lang_changed = lang != cfg["language"]
         save_config(cfg)
         if theme_changed:
             self.app.apply_theme()
         self.app.refresh_presence_if_active()
         self.destroy()
+        if lang_changed:   # l'interface est reconstruite dans la nouvelle langue
+            self.app.after(20, lambda: self.app.set_language(lang))
 
 
 class HelpDialog(BaseDialog):
     """Centre d'aide : une liste de sujets à gauche, l'explication à droite."""
 
     def __init__(self, app, topic=0):
-        super().__init__(app, "Centre d'aide", "840x540")
+        super().__init__(app, tr("help_title"), "840x540")
         t = app.theme
         open_issue = lambda: webbrowser.open(GITHUB_URL + "/issues/new")
-        self.topics = [
-            ("Démarrer en 30 secondes",
-             "1. Ouvre l'application Discord sur ton PC (pas le navigateur).\n\n"
-             "2. En haut de la fenêtre, choisis ta console : Nintendo Switch ou Switch 2.\n\n"
-             "3. Double-clique sur le jeu auquel tu joues.\n\n"
-             "C'est tout : ton profil Discord affiche le jeu, la console et le temps de jeu.\n\n"
-             "Pour arrêter, clique sur « Arrêter » (ou ferme l'application). Tu peux aussi écrire un "
-             "message perso (par exemple « Niveau 12 ») dans la fenêtre principale.",
-             []),
-            ("Rien ne s'affiche sur Discord",
-             "Vérifie ces points, dans l'ordre :\n\n"
-             "1. Utilise l'application Discord installée sur ton PC, pas le site dans le navigateur.\n\n"
-             "2. Dans Discord, va dans Paramètres > Confidentialité des activités et active le partage de "
-             "ton activité (« Partager mon activité détectée »).\n\n"
-             "3. Regarde ton profil depuis un autre compte, ou demande à un ami : Discord n'affiche pas "
-             "toujours ton activité comme les autres la voient (le bouton, par exemple, ne t'est jamais montré).\n\n"
-             "4. Si la jaquette reste un « ? », patiente quelques secondes, puis clique sur « Arrêter » "
-             "et de nouveau sur « Afficher sur Discord ».\n\n"
-             "5. Toujours rien ? Ferme complètement Discord (clic droit sur son icône près de l'horloge, "
-             "puis « Quitter »), relance-le et réessaie.",
-             [("Contacter le créateur", lambda: self.show_topic(6))]),
-            ("Ajouter un jeu avec sa jaquette",
-             "1. Clique sur « + Ajouter un jeu ».\n\n"
-             "2. Écris le nom du jeu : c'est lui qui s'affiche en gros sur ton profil.\n\n"
-             "3. Pour la jaquette, cherche l'image du jeu sur Google Images, fais un clic droit dessus puis "
-             "« Copier l'adresse de l'image », et colle ce lien dans le champ « Cover ».\n\n"
-             "Astuces :\n"
-             "• Le lien doit commencer par https:// et mener directement à une image (.png, .jpg).\n"
-             "• Les images de Wikipédia (upload.wikimedia.org) ou de SteamGridDB marchent très bien.\n"
-             "• Si une image ne s'affiche pas, essaie un autre lien.\n"
-             "• Sans cover, une image par défaut s'affiche : le nom du jeu reste correct.\n\n"
-             "Tu peux changer la jaquette plus tard : clic droit sur le jeu > « Modifier la cover ».",
-             [("+ Ajouter un jeu maintenant", lambda: app.add_game())]),
-            ("Personnaliser ma présence",
-             "Clique sur « Personnaliser ma présence » en bas de la fenêtre principale (ou sur "
-             "Options > Paramètres). Chaque réglage a son explication et un aperçu te montre le résultat en direct.\n\n"
-             "Tu peux afficher ou masquer :\n"
-             "• le temps de jeu,\n"
-             "• le nom de la console sous le jeu,\n"
-             "• le petit badge Switch / Switch 2 sur la jaquette,\n"
-             f"• le bouton « {BUTTON_LABEL} ».\n\n"
-             "Tu peux aussi écrire un message perso dans la fenêtre principale. "
-             "Les changements s'appliquent tout de suite si un jeu est déjà affiché.",
-             [("Ouvrir les paramètres", lambda: SettingsDialog(app, "presence"))]),
-            ("Mon jeu n'est pas dans la liste",
-             "Deux solutions :\n\n"
-             "• Ajoute-le toi-même avec « + Ajouter un jeu » (voir « Ajouter un jeu avec sa jaquette »).\n\n"
-             "• Demande son ajout : je l'ajoute avec sa vraie jaquette et tout le monde l'aura au prochain "
-             "lancement de l'application (ou via Options > Actualiser la liste des jeux).",
-             [("Demander l'ajout (GitHub)", open_issue), ("+ Ajouter un jeu", lambda: app.add_game())]),
-            ("Windows affiche un avertissement",
-             "Au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur » ou "
-             "« Éditeur inconnu ». C'est normal : l'application n'est pas signée numériquement "
-             "(une signature coûte cher).\n\n"
-             "Clique sur « Informations complémentaires », puis « Exécuter quand même ».\n\n"
-             "Le code source est public sur GitHub : tu peux le vérifier, ou compiler l'application toi-même. "
-             "Si ton antivirus la bloque à tort, ajoute-la en exception.",
-             [("Voir le code source", lambda: webbrowser.open(GITHUB_URL))]),
-            ("Contacter le créateur",
-             "Un bug, une idée, un jeu à ajouter ? Écris-moi !\n\n"
-             f"• Discord : {CONTACT_DISCORD}\n"
-             "• GitHub : ouvre une demande (il faut un compte GitHub, c'est gratuit).\n\n"
-             "Pour un bug, dis-moi ce que tu faisais, le message d'erreur éventuel et la version de "
-             f"l'application ({APP_VERSION}).",
-             [("Copier mon pseudo Discord", self._copy_discord), ("Ouvrir une demande GitHub", open_issue)]),
+        fmt = dict(button=BUTTON_LABEL, discord=CONTACT_DISCORD, version=APP_VERSION)
+        buttons = [
+            [],
+            [(tr("help_btn_contact"), lambda: self.show_topic(6))],
+            [(tr("help_btn_add_now"), lambda: app.add_game())],
+            [(tr("help_btn_settings"), lambda: SettingsDialog(app, "presence"))],
+            [(tr("help_btn_request"), open_issue), (tr("help_btn_add"), lambda: app.add_game())],
+            [(tr("help_btn_source"), lambda: webbrowser.open(GITHUB_URL))],
+            [(tr("help_btn_copy"), self._copy_discord), (tr("help_btn_issue"), open_issue)],
         ]
+        self.topics = [(tr(f"help_t{i}_title"), tr(f"help_t{i}_body", **fmt), buttons[i]) for i in range(7)]
 
         left = ttk.Frame(self.body)
         left.pack(side="left", fill="y")
@@ -663,32 +677,29 @@ class HelpDialog(BaseDialog):
             self.app.clipboard_clear()
             self.app.clipboard_append(CONTACT_DISCORD)
             self.app.update()
-            self.status.config(text=f"Pseudo « {CONTACT_DISCORD} » copié. Colle-le dans la recherche de Discord.")
+            self.status.config(text=tr("help_copied", discord=CONTACT_DISCORD))
         except tk.TclError:
-            self.status.config(text=f"Mon pseudo Discord : {CONTACT_DISCORD}")
+            self.status.config(text=tr("help_discord_fallback", discord=CONTACT_DISCORD))
 
 
 class AboutDialog(BaseDialog):
     def __init__(self, app):
-        super().__init__(app, f"À propos de {APP_NAME}", "420x400")
+        super().__init__(app, tr("about_title", name=APP_NAME), "420x400")
         b = self.body
         ttk.Label(b, text=APP_NAME, style="Title.TLabel").pack(pady=(4, 0))
-        ttk.Label(b, text=f"Version {APP_VERSION}", style="Muted.TLabel").pack()
-        ttk.Label(b, text="Affiche le jeu auquel tu joues sur Nintendo Switch\net Switch 2 directement sur ton profil Discord.",
-                  justify="center").pack(pady=14)
-        ttk.Label(b, text=f"Créé par {APP_AUTHOR}", font=(FONT, 11, "bold")).pack()
-        ttk.Label(b, text=f"Discord : {CONTACT_DISCORD}", style="Muted.TLabel").pack(pady=(2, 0))
+        ttk.Label(b, text=tr("about_version", version=APP_VERSION), style="Muted.TLabel").pack()
+        ttk.Label(b, text=tr("about_desc"), justify="center").pack(pady=14)
+        ttk.Label(b, text=tr("about_created", author=APP_AUTHOR), font=(FONT, 11, "bold")).pack()
+        ttk.Label(b, text=tr("about_discord", discord=CONTACT_DISCORD), style="Muted.TLabel").pack(pady=(2, 0))
         link = ttk.Label(b, text=GITHUB_URL, style="Link.TLabel", cursor="hand2")
         link.pack(pady=(6, 12))
         link.bind("<Button-1>", lambda _e: webbrowser.open(GITHUB_URL))
-        ttk.Label(b, text="Projet de fan, non affilié à Nintendo ni à Discord.\n"
-                          "Nintendo Switch est une marque de Nintendo.",
-                  style="Muted.TLabel", justify="center").pack()
+        ttk.Label(b, text=tr("about_disclaimer"), style="Muted.TLabel", justify="center").pack()
         row = ttk.Frame(b)
         row.pack(side="bottom")
-        ttk.Button(row, text="Me contacter", style="Secondary.TButton",
+        ttk.Button(row, text=tr("about_contact"), style="Secondary.TButton",
                    command=lambda: app.open_help(6)).pack(side="left", padx=(0, 8))
-        ttk.Button(row, text="Fermer", style="Secondary.TButton", command=self.destroy).pack(side="left")
+        ttk.Button(row, text=tr("close"), style="Secondary.TButton", command=self.destroy).pack(side="left")
 
 
 # ----------------------------------------------------------------------------
@@ -697,12 +708,16 @@ class AboutDialog(BaseDialog):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title(f"{APP_NAME}  -  par {APP_AUTHOR}")
         sc = ui_scale(self)
         self.geometry(f"{int(540 * sc)}x{int(800 * sc)}")
         self.minsize(int(480 * sc), int(620 * sc))
         self._set_icon()
         self.cfg = load_config()
+        if self.cfg.get("language") not in available_languages():
+            self.cfg["language"] = detect_language() if AUTO_DETECT_LANGUAGE else DEFAULT_LANGUAGE
+            save_config(self.cfg)
+        load_language(self.cfg["language"])
+        self.title(tr("window_title", name=APP_NAME, author=APP_AUTHOR))
         self.bundled_games = load_bundled_games()
         self.theme = THEMES[self.cfg["theme"]]
 
@@ -726,6 +741,25 @@ class App(tk.Tk):
         self.after(1000, self._tick)
         self.after(400, self._first_run_check)
         self.after(800, self.refresh_remote)
+
+    # ---------- langue ----------
+    def set_language(self, code):
+        """Change la langue et reconstruit toute l'interface (sans redémarrer l'appli)."""
+        self.cfg["language"] = code
+        save_config(self.cfg)
+        load_language(code)
+        msg = self.msg_var.get()
+        for w in list(self.winfo_children()):
+            w.destroy()
+        self.title(tr("window_title", name=APP_NAME, author=APP_AUTHOR))
+        self._build_menu()
+        self._build_ui()
+        self.apply_theme()
+        self.refresh_list()
+        self.msg_var.set(msg)
+        self._show_update()
+        if self.active_game:
+            self._update_card()
 
     # ---------- construction ----------
     def _fit_main(self):
@@ -752,29 +786,29 @@ class App(tk.Tk):
 
     def _build_menu(self):
         fichier = tk.Menu(self, tearoff=0)
-        fichier.add_command(label="Ajouter un jeu…", command=self.add_game, accelerator="Ctrl+N")
+        fichier.add_command(label=tr("file_add"), command=self.add_game, accelerator="Ctrl+N")
         fichier.add_separator()
-        fichier.add_command(label="Exporter mes jeux ajoutés…", command=self.export_games)
-        fichier.add_command(label="Importer des jeux…", command=self.import_games)
+        fichier.add_command(label=tr("file_export"), command=self.export_games)
+        fichier.add_command(label=tr("file_import"), command=self.import_games)
         fichier.add_separator()
-        fichier.add_command(label="Quitter", command=self.on_close)
+        fichier.add_command(label=tr("file_quit"), command=self.on_close)
 
         options = tk.Menu(self, tearoff=0)
-        options.add_command(label="Actualiser la liste des jeux", command=lambda: self.refresh_remote(manual=True))
-        options.add_command(label="Personnaliser ma présence…", command=lambda: SettingsDialog(self, "presence"))
-        options.add_command(label="Paramètres…", command=lambda: SettingsDialog(self, "general"))
+        options.add_command(label=tr("opt_refresh"), command=lambda: self.refresh_remote(manual=True))
+        options.add_command(label=tr("opt_customize"), command=lambda: SettingsDialog(self, "presence"))
+        options.add_command(label=tr("opt_settings"), command=lambda: SettingsDialog(self, "general"))
 
         aide = tk.Menu(self, tearoff=0)
-        aide.add_command(label="Centre d'aide", command=lambda: self.open_help(0), accelerator="F1")
-        aide.add_command(label="Rien ne s'affiche sur Discord ?", command=lambda: self.open_help(1))
-        aide.add_command(label="Ajouter un jeu avec sa jaquette", command=lambda: self.open_help(2))
+        aide.add_command(label=tr("help_center"), command=lambda: self.open_help(0), accelerator="F1")
+        aide.add_command(label=tr("help_nothing"), command=lambda: self.open_help(1))
+        aide.add_command(label=tr("help_cover"), command=lambda: self.open_help(2))
         aide.add_separator()
-        aide.add_command(label="Contacter le créateur", command=lambda: self.open_help(6))
-        aide.add_command(label="Demander l'ajout d'un jeu…", command=lambda: webbrowser.open(GITHUB_URL + "/issues/new"))
-        aide.add_command(label="Page GitHub", command=lambda: webbrowser.open(GITHUB_URL))
+        aide.add_command(label=tr("help_contact"), command=lambda: self.open_help(6))
+        aide.add_command(label=tr("help_request"), command=lambda: webbrowser.open(GITHUB_URL + "/issues/new"))
+        aide.add_command(label=tr("help_github"), command=lambda: webbrowser.open(GITHUB_URL))
         aide.add_separator()
-        aide.add_command(label=f"À propos de {APP_NAME}", command=lambda: AboutDialog(self))
-        self.menu_defs = [("Fichier", fichier), ("Options", options), ("Aide", aide)]
+        aide.add_command(label=tr("help_about", name=APP_NAME), command=lambda: AboutDialog(self))
+        self.menu_defs = [(tr("menu_file"), fichier), (tr("menu_options"), options), (tr("menu_help"), aide)]
         self.menus = [fichier, options, aide]
         self.bind("<Control-n>", lambda _e: self.add_game())
         self.bind("<F1>", lambda _e: self.open_help(0))
@@ -803,13 +837,13 @@ class App(tk.Tk):
 
         # En-tête
         ttk.Label(root, text=APP_NAME, style="Title.TLabel").pack(anchor="w")
-        ttk.Label(root, text="Montre à tes amis ce que tu joues sur Switch", style="Muted.TLabel").pack(anchor="w", pady=(0, 14))
+        ttk.Label(root, text=tr("tagline"), style="Muted.TLabel").pack(anchor="w", pady=(0, 14))
         # Alerte de nouvelle version (cachée tant qu'il n'y en a pas)
         self.update_lbl = ttk.Label(root, text="", style="Link.TLabel", cursor="hand2")
         self.update_lbl.bind("<Button-1>", lambda _e: webbrowser.open(GITHUB_URL + "/releases/latest"))
 
         # Console
-        ttk.Label(root, text="MA CONSOLE", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(root, text=tr("my_console"), style="Section.TLabel").pack(anchor="w")
         self.console_seg = Segmented(
             root,
             [(k, v[0]) for k, v in CONSOLES.items()],
@@ -820,9 +854,9 @@ class App(tk.Tk):
         self.console_seg.pack(fill="x", pady=(4, 14))
 
         # Recherche
-        ttk.Label(root, text="MES JEUX", style="Section.TLabel").pack(anchor="w")
+        ttk.Label(root, text=tr("my_games"), style="Section.TLabel").pack(anchor="w")
         self.search_var = tk.StringVar()
-        self.search_entry = PlaceholderEntry(root, "Rechercher un jeu…", self.search_var)
+        self.search_entry = PlaceholderEntry(root, tr("search_placeholder"), self.search_var)
         self.search_entry.pack(fill="x", pady=(4, 8))
         self.search_var.trace_add("write", lambda *_: self.refresh_list())
 
@@ -847,30 +881,30 @@ class App(tk.Tk):
         self.tree.bind("<Return>", lambda _e: self.start())
 
         self.ctx = tk.Menu(self, tearoff=0)
-        self.ctx.add_command(label="Afficher sur Discord", command=self.start)
-        self.ctx.add_command(label="Ajouter / retirer des favoris", command=self.toggle_favorite)
-        self.ctx.add_command(label="Modifier la cover…", command=self.edit_cover)
+        self.ctx.add_command(label=tr("ctx_show"), command=self.start)
+        self.ctx.add_command(label=tr("ctx_fav"), command=self.toggle_favorite)
+        self.ctx.add_command(label=tr("ctx_cover"), command=self.edit_cover)
         self.ctx.add_separator()
-        self.ctx.add_command(label="Retirer de la liste", command=self.delete_game)
+        self.ctx.add_command(label=tr("ctx_remove"), command=self.delete_game)
         self.menus.append(self.ctx)
 
         small = ttk.Frame(bottom)
         small.pack(fill="x", pady=(6, 0))
-        ttk.Button(small, text="+ Ajouter un jeu", style="Secondary.TButton", command=self.add_game).pack(side="left")
-        ttk.Label(small, text="Clic droit sur un jeu pour plus d'options", style="Muted.TLabel").pack(side="right")
+        ttk.Button(small, text=tr("add_game_btn"), style="Secondary.TButton", command=self.add_game).pack(side="left")
+        ttk.Label(small, text=tr("right_click_hint"), style="Muted.TLabel").pack(side="right")
 
         # Message perso
-        ttk.Label(bottom, text="MESSAGE PERSO (OPTIONNEL)", style="Section.TLabel").pack(anchor="w", pady=(14, 0))
+        ttk.Label(bottom, text=tr("msg_label"), style="Section.TLabel").pack(anchor="w", pady=(14, 0))
         self.msg_var = tk.StringVar()
         ttk.Entry(bottom, textvariable=self.msg_var).pack(fill="x", pady=(4, 0))
-        ttk.Label(bottom, text="Ex : Niveau 12, Chasse aux Pokémon, En ligne avec des potes…", style="Muted.TLabel").pack(anchor="w", pady=(2, 0))
+        ttk.Label(bottom, text=tr("msg_example"), style="Muted.TLabel").pack(anchor="w", pady=(2, 0))
 
         # Carte "en cours"
         self.card = tk.Frame(bottom, bd=0, highlightthickness=1)
         self.card.pack(fill="x", pady=(14, 10))
-        self.card_title = tk.Label(self.card, text="Aucune présence active", font=(FONT, 11, "bold"), anchor="w")
+        self.card_title = tk.Label(self.card, text=tr("card_none_title"), font=(FONT, 11, "bold"), anchor="w")
         self.card_title.pack(fill="x", padx=12, pady=(10, 0))
-        self.card_sub = tk.Label(self.card, text="Choisis un jeu puis clique sur « Afficher sur Discord ».", font=(FONT, 9), anchor="w", justify="left", wraplength=440)
+        self.card_sub = tk.Label(self.card, text=tr("card_none_sub"), font=(FONT, 9), anchor="w", justify="left", wraplength=440)
         self.card_sub.pack(fill="x", padx=12, pady=(0, 10))
         self.card.bind("<Configure>", lambda e: self.card_sub.config(wraplength=max(200, e.width - 30)))
 
@@ -879,12 +913,12 @@ class App(tk.Tk):
         btns.pack(fill="x")
         custom = ttk.Frame(bottom)
         custom.pack(fill="x", pady=(10, 0))
-        ttk.Button(custom, text="Personnaliser ma présence", style="Secondary.TButton",
+        ttk.Button(custom, text=tr("btn_customize"), style="Secondary.TButton",
                    command=lambda: SettingsDialog(self, "presence")).pack(side="left", fill="x", expand=True)
-        ttk.Button(custom, text="Aide", style="Secondary.TButton",
+        ttk.Button(custom, text=tr("btn_help"), style="Secondary.TButton",
                    command=lambda: self.open_help(0)).pack(side="left", padx=(8, 0))
-        ttk.Button(btns, text="■  Arrêter", style="Secondary.TButton", command=self.stop).pack(side="right", padx=(8, 0), ipady=6)
-        ttk.Button(btns, text="▶  Afficher sur Discord", style="Accent.TButton", command=self.start).pack(side="left", fill="x", expand=True, ipady=6)
+        ttk.Button(btns, text=tr("btn_stop"), style="Secondary.TButton", command=self.stop).pack(side="right", padx=(8, 0), ipady=6)
+        ttk.Button(btns, text=tr("btn_start"), style="Accent.TButton", command=self.start).pack(side="left", fill="x", expand=True, ipady=6)
 
     # ---------- thème ----------
     def apply_theme(self):
@@ -1020,7 +1054,7 @@ class App(tk.Tk):
         self.refresh_list()
 
     def add_game(self):
-        dlg = GameDialog(self, "Ajouter un jeu")
+        dlg = GameDialog(self, tr("dlg_add_game"))
         self.wait_window(dlg)
         if dlg.result:
             name, cover = dlg.result
@@ -1035,7 +1069,7 @@ class App(tk.Tk):
         g = self.selected_game()
         if not g:
             return
-        dlg = GameDialog(self, "Modifier la cover", name=g["name"], cover=g["cover"], name_editable=False)
+        dlg = GameDialog(self, tr("dlg_edit_cover"), name=g["name"], cover=g["cover"], name_editable=False)
         self.wait_window(dlg)
         if dlg.result:
             self.cfg["overrides"][g["name"]] = dlg.result[1]
@@ -1044,7 +1078,7 @@ class App(tk.Tk):
 
     def delete_game(self):
         g = self.selected_game()
-        if g and messagebox.askyesno(APP_NAME, f"Retirer « {g['name']} » de la liste ?"):
+        if g and messagebox.askyesno(APP_NAME, tr("remove_confirm", name=g["name"])):
             self.cfg["custom"] = [c for c in self.cfg["custom"] if c["name"] != g["name"]]
             if g["name"] not in self.cfg["hidden"]:
                 self.cfg["hidden"].append(g["name"])
@@ -1052,15 +1086,15 @@ class App(tk.Tk):
             self.refresh_list()
 
     def export_games(self):
-        path = filedialog.asksaveasfilename(parent=self, defaultextension=".json", initialfile="mes_jeux.json",
-                                            filetypes=[("Liste de jeux", "*.json")])
+        path = filedialog.asksaveasfilename(parent=self, defaultextension=".json", initialfile=tr("export_default_file"),
+                                            filetypes=[(tr("filetype_games"), "*.json")])
         if path:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump({"custom": self.cfg["custom"], "overrides": self.cfg["overrides"]}, f, ensure_ascii=False, indent=2)
-            messagebox.showinfo(APP_NAME, "Liste exportée.", parent=self)
+            messagebox.showinfo(APP_NAME, tr("export_done"), parent=self)
 
     def import_games(self):
-        path = filedialog.askopenfilename(parent=self, filetypes=[("Liste de jeux", "*.json")])
+        path = filedialog.askopenfilename(parent=self, filetypes=[(tr("filetype_games"), "*.json")])
         if not path:
             return
         try:
@@ -1075,9 +1109,9 @@ class App(tk.Tk):
             self.cfg["overrides"].update(data.get("overrides", {}))
             save_config(self.cfg)
             self.refresh_list()
-            messagebox.showinfo(APP_NAME, f"{added} jeu(x) importé(s).", parent=self)
+            messagebox.showinfo(APP_NAME, tr("import_done", n=added), parent=self)
         except Exception as e:
-            messagebox.showerror(APP_NAME, f"Fichier invalide : {e}", parent=self)
+            messagebox.showerror(APP_NAME, tr("import_invalid", err=e), parent=self)
 
     # ---------- aide ----------
     def open_help(self, topic=0):
@@ -1090,7 +1124,7 @@ class App(tk.Tk):
 
     def _first_run_check(self):
         if not self.effective_client_id():
-            self._set_card("Bienvenue !", "Renseigne ton Application ID Discord dans la fenêtre des paramètres pour commencer.")
+            self._set_card(tr("welcome_title"), tr("welcome_sub"))
             SettingsDialog(self, "general")
 
     # ---------- Discord ----------
@@ -1110,7 +1144,7 @@ class App(tk.Tk):
     def start(self):
         g = self.selected_game()
         if not g:
-            messagebox.showinfo(APP_NAME, "Sélectionne d'abord un jeu dans la liste.", parent=self)
+            messagebox.showinfo(APP_NAME, tr("select_first"), parent=self)
             return
         if not self.effective_client_id():
             self._first_run_check()
@@ -1137,7 +1171,7 @@ class App(tk.Tk):
             "show_console": self.cfg["show_console"],
             "show_badge": self.cfg["show_badge"],
         }
-        self.events.put(("status", "Connexion à Discord…", game, console_label))
+        self.events.put(("status", tr("status_connecting"), game, console_label))
         threading.Thread(target=self._worker, args=(payload,), daemon=True).start()
 
     def _worker(self, p):
@@ -1178,11 +1212,11 @@ class App(tk.Tk):
                             raise
                 self.events.put(("active", g, p["console_label"]))
             except DiscordNotFound:
-                self.events.put(("error", "Discord est introuvable. Ouvre l'application Discord sur ton PC (pas le navigateur) puis réessaie."))
+                self.events.put(("error", tr("err_discord_not_found")))
             except InvalidID:
-                self.events.put(("error", "L'Application ID Discord est invalide. Vérifie-le dans Options > Paramètres."))
+                self.events.put(("error", tr("err_invalid_id")))
             except Exception as e:
-                self.events.put(("error", f"Impossible de communiquer avec Discord : {e}"))
+                self.events.put(("error", tr("err_generic", err=e)))
 
     def _close_rpc(self):
         if self.rpc:
@@ -1201,7 +1235,7 @@ class App(tk.Tk):
         self.active_game = None
         self.start_time = None
         threading.Thread(target=self._stop_worker, daemon=True).start()
-        self._set_card("Aucune présence active", "Choisis un jeu puis clique sur « Afficher sur Discord ».")
+        self._set_card(tr("card_none_title"), tr("card_none_sub"))
 
     def _stop_worker(self):
         with self.lock:
@@ -1213,14 +1247,14 @@ class App(tk.Tk):
             while True:
                 ev = self.events.get_nowait()
                 if ev[0] == "status":
-                    self._set_card(f"Connexion… {ev[2]['name']}", ev[1])
+                    self._set_card(tr("card_connecting", name=ev[2]["name"]), ev[1])
                 elif ev[0] == "active":
                     self.active_game = ev[1]
                     self._console_label = ev[2]
                     self._update_card()
                 elif ev[0] == "error":
                     self.active_game = None
-                    self._set_card("Échec de la connexion", ev[1])
+                    self._set_card(tr("card_failed"), ev[1])
                 elif ev[0] == "remote":
                     _, games, latest, manual = ev
                     if games:
@@ -1230,16 +1264,23 @@ class App(tk.Tk):
                         self.refresh_list()
                         added = len(self.all_games()) - before
                         if manual:
-                            messagebox.showinfo(APP_NAME, f"Liste à jour : {len(games)} jeux en ligne"
-                                                          + (f" ({added} nouveau(x))." if added > 0 else "."), parent=self)
-                    if latest and parse_version(latest) > parse_version(APP_VERSION):
-                        self.update_lbl.config(text=f"Version {latest} disponible")
-                        self.update_lbl.place(relx=1.0, y=6, anchor="ne")
+                            messagebox.showinfo(
+                                APP_NAME,
+                                tr("remote_ok_new", n=len(games), added=added) if added > 0 else tr("remote_ok", n=len(games)),
+                                parent=self)
+                    self._latest = latest
+                    self._show_update()
                 elif ev[0] == "remote_fail" and ev[1]:
-                    messagebox.showwarning(APP_NAME, "Impossible de récupérer la liste en ligne. Vérifie ta connexion internet.", parent=self)
+                    messagebox.showwarning(APP_NAME, tr("remote_fail"), parent=self)
         except queue.Empty:
             pass
         self.after(100, self._poll_events)
+
+    def _show_update(self):
+        latest = getattr(self, "_latest", "")
+        if latest and parse_version(latest) > parse_version(APP_VERSION):
+            self.update_lbl.config(text=tr("update_available", version=latest))
+            self.update_lbl.place(relx=1.0, y=6, anchor="ne")
 
     def _set_card(self, title, sub):
         self.card_title.config(text=title)
@@ -1249,7 +1290,7 @@ class App(tk.Tk):
         if not self.active_game:
             return
         elapsed = fmt_duration(time.time() - self.start_time) if self.start_time else "00:00"
-        self._set_card(f"●  {self.active_game['name']}", f"{self._console_label}   ·   en cours depuis {elapsed}")
+        self._set_card(f"●  {self.active_game['name']}", tr("card_running", console=self._console_label, elapsed=elapsed))
         self.card_title.config(fg="#2ecc71")
 
     def _tick(self):

@@ -10,6 +10,7 @@ Les consoles Nintendo n'ont pas d'intégration Discord native. Switch Presence e
 
 ## Fonctionnalités
 
+- **Disponible en français, anglais et espagnol** : anglais par défaut, et tu peux en changer à tout moment dans Paramètres > Général
 - Choix de la console : Nintendo Switch ou Nintendo Switch 2
 - Liste de jeux avec recherche, favoris (★) et ajout de tes propres jeux
 - Jaquette en grand, icône de la console en badge, chrono de session
@@ -80,6 +81,14 @@ Discord n'affiche une Rich Presence qu'à travers une « application » Discord.
 Dans l'appli : **+ Ajouter un jeu**, puis le nom du jeu. Pour la cover, colle un lien direct vers une image (finissant par `.png` ou `.jpg`) ; si tu laisses vide, une image par défaut s'affiche. Le nom du jeu s'affiche toujours correctement.
 
 Tu veux qu'un jeu soit ajouté pour tout le monde avec sa vraie jaquette ? **Aide > Demander l'ajout d'un jeu** ouvre une demande sur GitHub.
+
+## Traductions
+
+L'appli existe en **français, anglais et espagnol**. Les textes sont dans le dossier [`locales`](locales), un fichier JSON par langue. Pour ajouter une langue :
+
+1. Copie `locales/en.json` en `locales/xx.json` (`xx` = code de la langue, par exemple `de`).
+2. Traduis les valeurs (garde les clés et les `{variables}` intactes) et mets dans `"_name"` le nom de la langue dans cette langue, par exemple `"Deutsch"`.
+3. Ouvre une pull request, ou envoie-moi le fichier via une [demande GitHub](../../issues/new). La langue apparaît alors automatiquement dans **Paramètres > Général**.
 
 ## À propos des jaquettes
 

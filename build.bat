@@ -8,6 +8,7 @@ python -m PyInstaller --onefile --noconsole --clean --name SwitchPresence ^
   --add-data "assets\icon.ico;assets" ^
   --add-data "assets\icon.png;assets" ^
   --add-data "games.json;." ^
+  --add-data "locales;locales" ^
   switch_presence.py
 if errorlevel 1 goto :error
 echo.

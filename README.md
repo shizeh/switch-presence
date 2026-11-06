@@ -12,6 +12,7 @@ Nintendo consoles have no native Discord integration, so Switch Presence is **ma
 
 ## Features
 
+- **Available in English, French and Spanish**: English by default, and you can switch anytime in Settings > General
 - Choose your console: Nintendo Switch or Nintendo Switch 2
 - Game list with search, favorites (★) and your own custom games
 - Big cover art, console badge, session timer
@@ -89,6 +90,14 @@ To create the `.exe`, double-click **`build.bat`**. The file appears in the `dis
 ## Contact
 
 Bug, idea or game request? Open an [issue](../../issues/new) or message me on Discord: **Shizeh**. The app has **Help > Contact the creator** too.
+
+## Translations
+
+The app is available in **English, French and Spanish**. Texts live in the [`locales`](locales) folder, one JSON file per language. To add a language:
+
+1. Copy `locales/en.json` to `locales/xx.json` (`xx` = language code, e.g. `de`).
+2. Translate the values (keep the keys and the `{placeholders}` unchanged) and set `"_name"` to the language's own name, e.g. `"Deutsch"`.
+3. Open a pull request, or send me the file via an [issue](../../issues/new). The language then shows up automatically in **Settings > General**.
 
 ## Cover art
 
