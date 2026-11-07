@@ -33,7 +33,7 @@ if sys.platform == "win32":
 # Identité du logiciel (modifie ces valeurs pour personnaliser l'appli)
 # ----------------------------------------------------------------------------
 APP_NAME = "Switch Presence"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_AUTHOR = "Baptiste Shizeh"
 CONTACT_DISCORD = "Shizeh"   # pseudo Discord affiché dans l'aide
 GITHUB_URL = "https://github.com/shizeh/switch-presence"
@@ -126,7 +126,7 @@ def load_config():
         "theme": "dark",
         "language": "",         # vide = langue du système
         "show_timer": True,
-        "show_console": True,   # nom de la console sous le jeu
+        "show_console": False,  # nom de la console sous le jeu (désactivé par défaut : rendu plus sobre)
         "show_badge": True,     # petit badge de la console sur la jaquette
         "show_button": True,    # bouton « Get Switch Presence » sous l'activité
         "custom": [],           # jeux ajoutés [{name, cover}]
